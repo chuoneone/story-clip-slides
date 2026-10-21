@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<!-- 由 story-clip-slides skill 產生：內容全部在 __LESSON_JS__（分段文字＋動畫場景），本檔只是播放器，不用改 -->
+<title>__TITLE__ 動畫簡報</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#0b1220;overflow:hidden;font-family:"Noto Sans TC","Microsoft JhengHei","PingFang TC","標楷體",sans-serif;color:#0f172a;-webkit-user-select:none;user-select:none}
+#stage{position:absolute;left:50%;top:50%;width:1280px;height:720px;transform-origin:center center;background:#f0f7fc;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,.5)}
+.slide{position:absolute;inset:0;padding:30px 54px 56px;display:none;flex-direction:column}
+.slide.on{display:flex}
+.tag{display:flex;align-items:center;gap:14px;font-size:22px;font-weight:700;color:#0369a1;border-bottom:3px solid #0284c7;padding-bottom:8px}
+.tag .pts{font-size:17px;font-weight:500;background:#e0f2fe;border-radius:999px;padding:1px 14px}
+.tag .no{margin-left:auto;background:#0284c7;color:#fff;border-radius:10px;padding:1px 16px}
+.body{flex:1;display:flex;flex-direction:column;gap:16px;margin-top:20px;min-height:0}
+
+/* 逐步揭曉：data-s 依序出現；.fx 是「一直看得到、按了才變」（螢光筆：字先全部顯示，按一下才亮） */
+[data-s]:not(.fx){transition:opacity .3s,transform .3s}
+[data-s]:not(.fx):not(.in){opacity:0;transform:translateY(10px);visibility:hidden}
+.hl{border-radius:6px;padding:0 3px;transition:all .3s}
+.hl.in{background:#fef08a;box-shadow:0 0 0 3px #eab308}
+
+.title{justify-content:center;align-items:center;text-align:center;background:linear-gradient(135deg,#e0f2fe,#f0f7fc 60%,#fef3c7)}
+.title .kicker{font-size:28px;font-weight:700;color:#0369a1;letter-spacing:6px}
+.title h1{font-size:84px;line-height:1.25;margin:14px 0;color:#0c4a6e}
+.title .range{font-size:30px;color:#334155}
+.hint{margin-top:30px;font-size:20px;color:#64748b}
+.cover-clip{width:440px;margin-bottom:10px}
+
+/* 故事段落（字級由 autoFit 自動縮到放得下） */
+.story{display:flow-root;background:#fff;border:2px solid #cbd5e1;border-left:10px solid #0ea5e9;border-radius:8px 18px 18px 8px;padding:18px 28px;font-size:34px;line-height:1.85;color:#1e293b;font-family:"標楷體","DFKai-SB","BiauKai","Noto Sans TC",serif}
+.story p{text-indent:2em}
+.story p.say{text-indent:0}
+.story .sclip{float:right;width:440px;margin:4px 0 8px 22px}
+.note{background:#fff7ed;border:3px dashed #ea580c;border-radius:18px;padding:10px 22px;font-size:27px;color:#9a3412;font-weight:700}
+.quote{background:linear-gradient(135deg,#f0fdf4,#e0f2fe);border:3px solid #0284c7;border-radius:20px;padding:16px 28px;font-size:31px;line-height:1.6;text-align:center;font-weight:700;color:#0c4a6e}
+
+#bar{position:absolute;left:0;right:0;bottom:0;height:40px;display:flex;align-items:center;gap:14px;padding:0 54px;background:#fff;border-top:1px solid #cbd5e1;font-size:17px;color:#475569}
+#prog{flex:1;height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden}
+#prog i{display:block;height:100%;width:0;background:#0284c7;transition:width .25s}
+#bar button{border:0;background:#e0f2fe;color:#0369a1;font-weight:700;font-size:17px;border-radius:8px;padding:3px 12px;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage">
+<div id="bar"><button id="bprev">◀</button><div id="prog"><i></i></div><span id="pg"></span><button id="bnext">▶</button><button id="bfs">全螢幕</button></div>
+</div>
+<script src="__ENGINE_JS__"></script>
+<script src="__LESSON_JS__"></script>
+<script>
+// ===================== 由 LESSON 產生投影片 =====================
+const L = window.LESSON;
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+// [[字]] → 螢光筆重點（字一開始就在，按一下才亮）
+const marks = t => esc(t).replace(/\[\[(.+?)\]\]/g, (_, w) => `<span class="hl fx" data-s="1">${w}</span>`);
+const parts = [];
+
+parts.push(`<section class="slide title">
+  ${L.coverClip != null ? `<div class="sclip cover-clip" data-clip="${L.coverClip}" data-notitle></div>` : ''}
+  <div class="kicker">${L.kicker || '閱讀理解'}</div><h1>${L.title}</h1>
+  ${L.subtitle ? `<p class="range">${L.subtitle}</p>` : ''}
+  <p class="hint">點一下、按 → 或空白鍵：下一步　｜　← 回上一步　｜　F 全螢幕　｜　點動畫可重播</p></section>`);
+
+L.passages.forEach((p, k) => {
+  const paras = Array.isArray(p.text) ? p.text : [p.text];
+  const hasHl = paras.some(t => /\[\[/.test(t));
+  const body = paras.map(t => `<p${/^[「『"]/.test(t) ? ' class="say"' : ''}>${marks(t)}</p>`).join('');
+  parts.push(`<section class="slide">
+    <div class="tag"><span>${p.label || '第 ' + (k + 1) + ' 段'}</span><span class="pts">${hasHl ? '按一下：看 🖍️ 重點' : '讀一讀'}</span><span class="no">${k + 1} / ${L.passages.length}</span></div>
+    <div class="body"><div class="story">${p.clip != null ? `<div class="sclip" data-clip="${p.clip}"></div>` : ''}${body}</div>
+    ${p.note ? `<div class="note" data-s="${hasHl ? 2 : 1}">${p.note}</div>` : ''}</div></section>`);
+});
+
+parts.push(`<section class="slide title">
+  ${L.endClip != null ? `<div class="sclip cover-clip" data-clip="${L.endClip}" data-notitle></div>` : ''}
+  <div class="kicker">${L.endKicker || '故事讀完了'}</div>
+  <h1 style="font-size:60px;">${L.endLine || L.title}</h1>
+  ${L.endNote ? `<div class="quote" data-s="1" style="margin-top:22px;">${L.endNote}</div>` : ''}</section>`);
+
+document.getElementById('stage').insertAdjacentHTML('afterbegin', parts.join('\n'));
+document.title = L.title + ' 動畫簡報';
+window.StoryClips && StoryClips.init();
+
+// ===================== 播放器 =====================
+// 放不下就自動縮：先縮故事字級，再縮動畫
+function autoFit(s) {
+  if (s.dataset.fit) return; s.dataset.fit = 1;
+  const b = s.querySelector('.body'), st = s.querySelector('.story'); if (!b || !st) return;
+  const over = () => b.scrollHeight > b.clientHeight + 1;
+  let fs = 34, cw = 440; const clip = st.querySelector('.sclip');
+  while (over() && fs > 20) { fs -= 2; st.style.fontSize = fs + 'px'; st.style.lineHeight = fs < 28 ? '1.6' : '1.8'; if (clip && cw > 300) { cw -= 20; clip.style.width = cw + 'px'; } }
+}
+const slides = [...document.querySelectorAll('.slide')];
+let i = 0;
+const stage = document.getElementById('stage');
+function fit() { const s = Math.min(innerWidth / 1280, innerHeight / 720); stage.style.transform = `translate(-50%,-50%) scale(${s})`; }
+addEventListener('resize', fit); fit();
+function groups(s) { const m = new Map(); s.querySelectorAll('[data-s]').forEach(el => { const k = +el.dataset.s; if (!m.has(k)) m.set(k, []); m.get(k).push(el); }); return [...m.keys()].sort((a, b) => a - b).map(k => m.get(k)); }
+function stepOf(s) { return +(s.dataset.step || 0); }
+function setStep(s, n) { const g = groups(s); s.dataset.step = n; g.forEach((els, k) => els.forEach(el => el.classList.toggle('in', k < n))); }
+function show(n, full) {
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach((s, k) => s.classList.toggle('on', k === i));
+  const s = slides[i];
+  autoFit(s);
+  s.querySelectorAll('.sclip').forEach(c => window.StoryClips && StoryClips.play(c));
+  setStep(s, full ? groups(s).length : 0);
+  document.getElementById('prog').firstChild.style.width = (i / (slides.length - 1) * 100) + '%';
+  document.getElementById('pg').textContent = (i + 1) + ' / ' + slides.length;
+  try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) { }
+}
+function next() { const s = slides[i]; const n = stepOf(s); if (n < groups(s).length) setStep(s, n + 1); else show(i + 1, false); }
+function prev() { const s = slides[i]; const n = stepOf(s); if (n > 0) setStep(s, n - 1); else if (i > 0) show(i - 1, true); }
+addEventListener('keydown', e => {
+  if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+  else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
+  else if (e.key === 'Home') show(0); else if (e.key === 'End') show(slides.length - 1);
+  else if (e.key === 'f' || e.key === 'F') fs();
+});
+function fs() { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+stage.addEventListener('click', e => { if (e.target.closest('#bar')) return; next(); });
+let tx = null; addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+addEventListener('touchend', e => { if (tx === null) return; const d = e.changedTouches[0].clientX - tx; tx = null; if (Math.abs(d) > 60) { d < 0 ? next() : prev(); } });
+document.getElementById('bfs').onclick = e => { e.stopPropagation(); fs(); };
+document.getElementById('bprev').onclick = e => { e.stopPropagation(); prev(); };
+document.getElementById('bnext').onclick = e => { e.stopPropagation(); next(); };
+const h0 = parseInt(location.hash.slice(1)); show(h0 > 0 ? h0 - 1 : 0, false);
+</script>
+</body>
+</html>
