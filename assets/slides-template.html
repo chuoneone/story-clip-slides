@@ -81,7 +81,7 @@ parts.push(`<section class="slide title">
 
 document.getElementById('stage').insertAdjacentHTML('afterbegin', parts.join('\n'));
 document.title = L.title + ' 動畫簡報';
-window.StoryClips && StoryClips.init();
+if (window.StoryClips) { if (L.clipStyle) StoryClips.setStyle(L.clipStyle); StoryClips.init(); }
 
 // ===================== 播放器 =====================
 // 放不下就自動縮：先縮故事字級，再縮動畫

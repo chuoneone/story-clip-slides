@@ -18,6 +18,10 @@
 .sclip .ttl{position:absolute;left:8px;bottom:8px;background:rgba(15,23,42,.6);color:#fff;font-size:13px;border-radius:8px;padding:1px 8px;pointer-events:none;font-family:"Noto Sans TC",sans-serif}
 .sclip svg *{transform-box:fill-box;transform-origin:center}
 .sclip text{font-family:"Noto Sans TC","Microsoft JhengHei",sans-serif}
+.sclip.crayon{background:#fbf3df}
+.sclip.crayon .art rect,.sclip.crayon .art circle,.sclip.crayon .art ellipse,.sclip.crayon .art path,.sclip.crayon .art polygon,.sclip.crayon .art use{stroke:#4a3728;stroke-width:2.4;stroke-linejoin:round;paint-order:stroke;filter:url(#sc-crayon)}
+.sclip.crayon .art text{filter:url(#sc-wobble)}
+.sclip.crayon .art text{font-family:"Comic Sans MS","Noto Sans TC","Microsoft JhengHei",sans-serif}
 @keyframes sc-pop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes sc-in{from{opacity:0}to{opacity:1}}
 @keyframes sc-out{from{opacity:1}to{opacity:0}}
@@ -122,9 +126,30 @@
 
   // ---------- 播放 ----------
   const S = {};
+  // 畫風：'crayon'（預設，蠟筆繪本：抖動線條＋蠟筆顆粒＋粗輪廓＋紙紋）或 'flat'（乾淨幾何）
+  let styleName = 'crayon';
+  const crayonDefs = `
+    <filter id="sc-crayon" x="-4%" y="-4%" width="108%" height="108%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" seed="3" result="w"/>
+      <feDisplacementMap in="SourceGraphic" in2="w" scale="4.5" xChannelSelector="R" yChannelSelector="G" result="d"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="8" result="g"/>
+      <feColorMatrix in="g" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  -5 0 0 0 1.9" result="gm"/>
+      <feComposite in="gm" in2="d" operator="in" result="specks"/>
+      <feMerge><feMergeNode in="d"/><feMergeNode in="specks"/></feMerge>
+    </filter>
+    <filter id="sc-wobble" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" seed="5" result="w"/><feDisplacementMap in="SourceGraphic" in2="w" scale="2"/></filter>
+    <filter id="sc-paper" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.6 0.9" numOctaves="3" seed="2"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .45  0 0 0 0 .32  0 0 0 .55 0"/>
+    </filter>`;
   function render(el) {
     const s = S[el.dataset.clip]; if (!s) return;
-    el.innerHTML = `<svg class="scene" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg"><defs>${mouseSym}</defs>${s.svg(h)}</svg>` +
+    const crayon = (el.dataset.style || styleName) === 'crayon';
+    el.classList.toggle('crayon', crayon);
+    const art = crayon
+      ? `<g class="art">${s.svg(h)}</g><rect width="480" height="300" filter="url(#sc-paper)" opacity=".35" style="mix-blend-mode:multiply" pointer-events="none"/>`
+      : s.svg(h);
+    el.innerHTML = `<svg class="scene" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg"><defs>${mouseSym}${crayon ? crayonDefs : ''}</defs>${art}</svg>` +
       (el.dataset.notitle != null ? '' : `<span class="ttl">${s.t || ''}</span>`) + `<span class="rp">↻</span>`;
   }
   const io = 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(en => {
@@ -158,6 +183,7 @@
     document.body.appendChild(g); // 先放進頁面，動畫物件才會存在
     g.querySelectorAll('.sclip').forEach(d => { freeze(d, +d.dataset.ms); d.querySelector('.rp').remove(); });
   }
-  window.StoryClips = { h, define, play: render, init, freeze, sheet };
+  function setStyle(n) { styleName = n || 'crayon'; document.querySelectorAll('.sclip[data-ready]').forEach(render); }
+  window.StoryClips = { h, define, play: render, init, freeze, sheet, setStyle };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => init()); else init();
 })();
