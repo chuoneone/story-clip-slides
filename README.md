@@ -77,4 +77,4 @@ examples/lunyu/             範例：論語選三則
 
 ---
 
-作者：SPEDMIX 米克師（特教老師）
+作者：SPEDMIX 米克師（特教老師）｜授權：MIT
